@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:todo_flutter_application/data/database.dart';
 import 'package:todo_flutter_application/utils/dialog_box.dart';
 
 import '../utils/todo_tile.dart';
@@ -11,26 +13,36 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final _myBox = Hive.box('mybox');
+
   final _controller = TextEditingController();
   // List of todo
-  List todoList = [
-    ["Buy Groceries", false],
-    ["Go to Gym", false],
-    ["Learn Flutter", false]
-  ];
+  TodoDatabase db = TodoDatabase();
+
+  @override
+  void initState() {
+    if (_myBox.get("TODOLIST") == null) {
+      db.createInitialData();
+    } else {
+      db.loadData();
+    }
+    super.initState();
+  }
 
   void checkboxChanged(bool? value, int index) {
     setState(() {
-      todoList[index][1] = !todoList[index][1];
+      db.todoList[index][1] = !db.todoList[index][1];
     });
+    db.updateData();
   }
 
   void SaveTask() {
     setState(() {
-      todoList.add([_controller.text, false]);
+      db.todoList.add([_controller.text, false]);
       _controller.clear();
     });
     Navigator.of(context).pop();
+    db.updateData();
   }
 
   void createNewTask() {
@@ -47,8 +59,9 @@ class _HomePageState extends State<HomePage> {
 
   void deleteTask(int index) {
     setState(() {
-      todoList.removeAt(index);
+      db.todoList.removeAt(index);
     });
+    db.updateData();
   }
 
   @override
@@ -66,13 +79,13 @@ class _HomePageState extends State<HomePage> {
       body: ListView.builder(
           itemBuilder: (context, index) {
             return TodoTile(
-              taskName: todoList[index][0],
-              taskCompleted: todoList[index][1],
+              taskName: db.todoList[index][0],
+              taskCompleted: db.todoList[index][1],
               onChanged: (value) => checkboxChanged(value, index),
               deleteFunction: (context) => deleteTask(index),
             );
           },
-          itemCount: todoList.length),
+          itemCount: db.todoList.length),
     );
   }
 }
